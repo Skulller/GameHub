@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Angel Spiel</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #87CEEB;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        h1, p {
+            color: #fff;
+        }
+
+        canvas {
+            border: 2px solid #000;
+            background-color: #87CEEB;
+        }
+
+        #gameCanvas {
+            background-color: #3b7fd2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Angel Spiel</h1>
+    <p>Versuche, die Fische zu fangen!</p>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // Initialisiere das Spiel
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Setze die Größe des Canvas
+        canvas.width = 800;
+        canvas.height = 600;
+
+        // Variablen für das Spiel
+        let score = 0;
+        let fishCaught = false;
+        let fishX, fishY, fishSpeed = 3;
+        let fishingRodY = canvas.height / 2;
+        let fishingRodSpeed = 10;
+
+        // Angel (Fischerköder) Eigenschaften
+        const rodWidth = 10;
+        const rodHeight = 100;
+
+        // Fisch Eigenschaften
+        const fishWidth = 50;
+        const fishHeight = 30;
+
+        // Zeichne das Angelspiel
+        function draw() {
+            // Hintergrund
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#3b7fd2";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Zeichne den Fisch
+            ctx.fillStyle = "orange";
+            ctx.fillRect(fishX, fishY, fishWidth, fishHeight);
+
+            // Zeichne die Angelrute
+            ctx.fillStyle = "brown";
+            ctx.fillRect(50, fishingRodY, rodWidth, rodHeight);
+
+            // Punkte anzeigen
+            ctx.font = "30px Arial";
+            ctx.fillStyle = "#fff";
+            ctx.fillText("Punkte: " + score, 20, 40);
+
+            // Überprüfe, ob der Fisch gefangen wurde
+            if (fishCaught) {
+                score += 10;
+                spawnFish(); // Fisch an neuer Position spawnen
+                fishCaught = false; // Reset fischen
+            }
+        }
+
+        // Fisch spawnen
+        function spawnFish() {
+            fishX = canvas.width;
+            fishY = Math.random() * (canvas.height - fishHeight);
+        }
+
+        // Fischbewegung
+        function moveFish() {
+            fishX -= fishSpeed;
+            if (fishX + fishWidth < 0) {
+                fishX = canvas.width;
+                fishY = Math.random() * (canvas.height - fishHeight);
+            }
+        }
+
+        // Steuerung der Angelrute mit Pfeiltasten
+        function moveRod(event) {
+            if (event.key === "ArrowUp") {
+                fishingRodY -= fishingRodSpeed;
+            }
+            if (event.key === "ArrowDown") {
+                fishingRodY += fishingRodSpeed;
+            }
+
+            // Begrenzung der Bewegung innerhalb des Canvas
+            if (fishingRodY < 0) fishingRodY = 0;
+            if (fishingRodY + rodHeight > canvas.height) fishingRodY = canvas.height - rodHeight;
+        }
+
+        // Überprüfe, ob der Fisch gefangen wurde
+        function checkCollision() {
+            if (
+                fishX < 50 + rodWidth && // Wenn der Fisch auf die Angel trifft
+                fishX + fishWidth > 50 &&
+                fishY < fishingRodY + rodHeight && 
+                fishY + fishHeight > fishingRodY
+            ) {
+                fishCaught = true; // Der Fisch wurde gefangen
+            }
+        }
+
+        // Das Spiel ausführen
+        function gameLoop() {
+            moveFish();
+            checkCollision();
+            draw();
+            requestAnimationFrame(gameLoop); // Animation wiederholen
+        }
+
+        // Event Listener für Pfeiltasten
+        window.addEventListener("keydown", moveRod);
+
+        // Starte das Spiel
+        spawnFish();
+        gameLoop();
+    </script>
+
+</body>
+</html>

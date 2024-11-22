@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engel vs. Dämonen</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        canvas {
+            border: 2px solid #000;
+            background-color: #87CEFA;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 30px;
+            margin-top: 20px;
+        }
+
+        .info {
+            text-align: center;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Engel vs. Dämonen</h1>
+    <p class="info">Steuere den Engel mit den Pfeiltasten. Drücke die Leertaste, um zu schießen!</p>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Spieler und Gegner
+        let player = {
+            x: 100,
+            y: canvas.height / 2,
+            width: 50,
+            height: 50,
+            speed: 5,
+            color: "white",
+            dx: 0,
+            dy: 0,
+            health: 3,
+        };
+
+        let demon = {
+            x: canvas.width - 150,
+            y: canvas.height / 2,
+            width: 50,
+            height: 50,
+            speed: 2,
+            color: "red",
+            dx: 0,
+            dy: 0,
+            health: 3,
+        };
+
+        let bullets = [];
+        let demonBullets = [];
+
+        // Spielerbewegung
+        function movePlayer() {
+            player.x += player.dx;
+            player.y += player.dy;
+
+            // Begrenzung des Spielfeldes
+            if (player.x < 0) player.x = 0;
+            if (player.y < 0) player.y = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+        }
+
+        // Dämonenbewegung (verfolgt den Spieler)
+        function moveDemon() {
+            // Dämon verfolgt den Engel sowohl horizontal als auch vertikal
+            if (demon.y < player.y) {
+                demon.dy = demon.speed;
+            } else if (demon.y > player.y) {
+                demon.dy = -demon.speed;
+            } else {
+                demon.dy = 0;
+            }
+
+            if (demon.x < player.x) {
+                demon.dx = demon.speed;
+            } else if (demon.x > player.x) {
+                demon.dx = -demon.speed;
+            } else {
+                demon.dx = 0;
+            }
+
+            demon.y += demon.dy;
+            demon.x += demon.dx;
+
+            // Begrenzung des Spielfeldes für den Dämonen
+            if (demon.x < 0) demon.x = 0;
+            if (demon.y < 0) demon.y = 0;
+            if (demon.x + demon.width > canvas.width) demon.x = canvas.width - demon.width;
+            if (demon.y + demon.height > canvas.height) demon.y = canvas.height - demon.height;
+        }
+
+        // Zeichnen des Spielers und des Dämons
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+
+        function drawDemon() {
+            ctx.fillStyle = demon.color;
+            ctx.fillRect(demon.x, demon.y, demon.width, demon.height);
+        }
+
+        // Schießen
+        function shootBullet() {
+            let bullet = {
+                x: player.x + player.width,
+                y: player.y + player.height / 2,
+                width: 10,
+                height: 5,
+                speed: 7,
+                color: "yellow",
+            };
+
+            bullets.push(bullet);
+        }
+
+        function shootDemonBullet() {
+            let bullet = {
+                x: demon.x - demon.width,
+                y: demon.y + demon.height / 2,
+                width: 10,
+                height: 5,
+                speed: 5,
+                color: "green",
+            };
+
+            demonBullets.push(bullet);
+        }
+
+        // Zeichnen der Kugeln
+        function drawBullets() {
+            bullets.forEach((bullet, index) => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                bullet.x += bullet.speed;
+
+                // Entfernen der Kugeln, die außerhalb des Canvas sind
+                if (bullet.x > canvas.width) {
+                    bullets.splice(index, 1);
+                }
+            });
+
+            demonBullets.forEach((bullet, index) => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                bullet.x -= bullet.speed;
+
+                // Entfernen der Kugeln, die außerhalb des Canvas sind
+                if (bullet.x < 0) {
+                    demonBullets.splice(index, 1);
+                }
+            });
+        }
+
+        // Überprüfen von Kollisionen
+        function checkCollisions() {
+            // Spieler-Kollisionsprüfung mit Dämonen
+            bullets.forEach((bullet, index) => {
+                if (bullet.x < demon.x + demon.width &&
+                    bullet.x + bullet.width > demon.x &&
+                    bullet.y < demon.y + demon.height &&
+                    bullet.y + bullet.height > demon.y) {
+                    // Treffer! Dämon wird zerstört
+                    bullets.splice(index, 1);
+                    demon.health -= 1;
+                    if (demon.health <= 0) {
+                        alert("Du hast den Dämon besiegt!");
+                        resetGame();
+                    }
+                }
+            });
+
+            // Dämonen-Kollisionsprüfung mit Spieler
+            demonBullets.forEach((bullet, index) => {
+                if (bullet.x < player.x + player.width &&
+                    bullet.x + bullet.width > player.x &&
+                    bullet.y < player.y + player.height &&
+                    bullet.y + bullet.height > player.y) {
+                    // Treffer! Spieler wird verletzt
+                    demonBullets.splice(index, 1);
+                    player.health -= 1;
+                    if (player.health <= 0) {
+                        alert("Der Dämon hat dich besiegt!");
+                        resetGame();
+                    }
+                }
+            });
+        }
+
+        // Steuerung des Spiels
+        function keyDownHandler(e) {
+            if (e.key === "ArrowUp") {
+                player.dy = -player.speed;
+            }
+            if (e.key === "ArrowDown") {
+                player.dy = player.speed;
+            }
+            if (e.key === "ArrowLeft") {
+                player.dx = -player.speed;
+            }
+            if (e.key === "ArrowRight") {
+                player.dx = player.speed;
+            }
+            if (e.key === " " || e.key === "Enter") {
+                shootBullet();
+            }
+        }
+
+        function keyUpHandler(e) {
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+                player.dy = 0;
+            }
+            if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+                player.dx = 0;
+            }
+        }
+
+        // Reset des Spiels
+        function resetGame() {
+            player.x = 100;
+            player.y = canvas.height / 2;
+            player.health = 3;
+
+            demon.x = canvas.width - 150;
+            demon.y = canvas.height / 2;
+            demon.health = 3;
+        }
+
+        // Spiel Schleife
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Canvas leeren
+
+            movePlayer();
+            moveDemon();
+            drawPlayer();
+            drawDemon();
+            drawBullets();
+            checkCollisions();
+
+            // Dämon schießt, wenn er nahe genug ist
+            if (Math.abs(demon.x - player.x) < 150) {
+                shootDemonBullet();
+            }
+
+            requestAnimationFrame(gameLoop); // Wiederhole die Schleife
+        }
+
+        // Event Listener für Tastatursteuerung
+        document.addEventListener("keydown", keyDownHandler);
+        document.addEventListener("keyup", keyUpHandler);
+
+        // Starte das Spiel
+        gameLoop();
+    </script>
+</body>
+</html>

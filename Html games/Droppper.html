@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropper Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        canvas {
+            border: 2px solid #fff;
+        }
+
+        .game-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 20px;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            color: white;
+            display: none;
+        }
+
+        .respawn-button {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: none;
+        }
+
+        .respawn-button:hover {
+            background-color: #45a049;
+        }
+
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div class="game-info">
+    Score: <span id="score">0</span>
+</div>
+<div class="game-over">
+    Game Over
+</div>
+<button id="respawnBtn" class="respawn-button">Respawn</button>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const gameOverElement = document.querySelector('.game-over');
+    const respawnBtn = document.getElementById('respawnBtn');
+
+    const canvasWidth = 400;
+    const canvasHeight = 600;
+    const playerWidth = 30;
+    const playerHeight = 30;
+    const dropperWidth = 30;
+    const dropperSpeed = 5;
+    let playerX = canvasWidth / 2 - playerWidth / 2;
+    let playerY = canvasHeight - playerHeight - 10;
+    let playerSpeed = 7;
+    let score = 0;
+    let gameOver = false;
+
+    let droppers = [];
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    function createDropper() {
+        const x = Math.random() * (canvasWidth - dropperWidth);
+        const dropper = { x, y: -dropperWidth, width: dropperWidth, height: dropperWidth };
+        droppers.push(dropper);
+    }
+
+    function moveDroppers() {
+        for (let i = 0; i < droppers.length; i++) {
+            droppers[i].y += dropperSpeed;
+
+            if (droppers[i].y > canvasHeight) {
+                droppers.splice(i, 1);
+                i--;
+                score++;
+            }
+        }
+    }
+
+    function checkCollision() {
+        for (let i = 0; i < droppers.length; i++) {
+            if (
+                playerX < droppers[i].x + droppers[i].width &&
+                playerX + playerWidth > droppers[i].x &&
+                playerY < droppers[i].y + droppers[i].height &&
+                playerY + playerHeight > droppers[i].y
+            ) {
+                gameOver = true;
+                gameOverElement.style.display = 'block';
+                respawnBtn.style.display = 'block'; // Respawn-Button anzeigen
+                return;
+            }
+        }
+    }
+
+    function drawPlayer() {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(playerX, playerY, playerWidth, playerHeight);
+    }
+
+    function drawDroppers() {
+        ctx.fillStyle = 'red';
+        for (let dropper of droppers) {
+            ctx.fillRect(dropper.x, dropper.y, dropper.width, dropper.height);
+        }
+    }
+
+    function update() {
+        if (gameOver) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        moveDroppers();
+        checkCollision();
+        drawPlayer();
+        drawDroppers();
+
+        scoreElement.textContent = score;
+
+        requestAnimationFrame(update);
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'ArrowLeft' && playerX > 0) {
+            playerX -= playerSpeed;
+        }
+        if (event.key === 'ArrowRight' && playerX < canvasWidth - playerWidth) {
+            playerX += playerSpeed;
+        }
+    }
+
+    function gameLoop() {
+        if (gameOver) return;
+
+        createDropper();
+        setTimeout(gameLoop, 1000); // Create a new dropper every second
+    }
+
+    function resetGame() {
+        playerX = canvasWidth / 2 - playerWidth / 2;
+        playerY = canvasHeight - playerHeight - 10;
+        score = 0;
+        droppers = [];
+        gameOver = false;
+        gameOverElement.style.display = 'none';
+        respawnBtn.style.display = 'none'; // Respawn-Button verbergen
+        update(); // Spiel neu starten
+        gameLoop(); // Neustart der Spiel-Logik
+    }
+
+    window.addEventListener('keydown', handleKeyPress);
+
+    respawnBtn.addEventListener('click', resetGame); // Respawn-Button klick Handler
+
+    gameLoop();
+    update();
+</script>
+
+</body>
+</html>

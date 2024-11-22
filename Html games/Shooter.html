@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PVE Shooter</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #282c34;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid #fff;
+        }
+        .countdown {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<div id="countdown" class="countdown"></div>
+
+<script>
+// Canvas initialisieren
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Spieler
+let player = {
+    x: canvas.width / 2,
+    y: canvas.height - 50,
+    width: 50,
+    height: 50,
+    speed: 5,
+    dx: 0,
+    dy: 0
+};
+
+// Projektile
+let bullets = [];
+let bulletSpeed = 7;
+
+// Gegner
+let enemies = [];
+let enemySpeed = 2;
+
+// Spielvariablen
+let score = 0;
+let gameOver = false;
+let countdownTime = 3; // Countdown-Zeit in Sekunden
+let countdownInterval;
+
+// Spielerbewegung
+function movePlayer() {
+    player.x += player.dx;
+    player.y += player.dy;
+
+    // Grenzen des Spiels
+    if (player.x < 0) player.x = 0;
+    if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+    if (player.y < 0) player.y = 0;
+    if (player.y > canvas.height - player.height) player.y = canvas.height - player.height;
+}
+
+// Zeichne den Spieler
+function drawPlayer() {
+    ctx.fillStyle = "#00ff00";
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+}
+
+// Zeichne die Projektile
+function drawBullets() {
+    ctx.fillStyle = "#ff0000";
+    for (let i = 0; i < bullets.length; i++) {
+        ctx.fillRect(bullets[i].x, bullets[i].y, 10, 20);
+    }
+}
+
+// Projektile bewegen
+function moveBullets() {
+    for (let i = 0; i < bullets.length; i++) {
+        bullets[i].y -= bulletSpeed;
+        if (bullets[i].y < 0) {
+            bullets.splice(i, 1); // Bullet aus dem Array entfernen
+        }
+    }
+}
+
+// Erstelle einen neuen Gegner
+function createEnemy() {
+    let x = Math.random() * (canvas.width - 50);
+    let y = -50;
+    let enemy = {
+        x: x,
+        y: y,
+        width: 50,
+        height: 50
+    };
+    enemies.push(enemy);
+}
+
+// Zeichne die Gegner
+function drawEnemies() {
+    ctx.fillStyle = "#ff6600";
+    for (let i = 0; i < enemies.length; i++) {
+        ctx.fillRect(enemies[i].x, enemies[i].y, enemies[i].width, enemies[i].height);
+    }
+}
+
+// Gegner bewegen
+function moveEnemies() {
+    for (let i = 0; i < enemies.length; i++) {
+        enemies[i].y += enemySpeed;
+        if (enemies[i].y > canvas.height) {
+            enemies.splice(i, 1); // Gegner entfernt, wenn er aus dem Bildschirm hinaus ist
+        }
+    }
+}
+
+// Kollisionserkennung
+function checkCollisions() {
+    // Prüfen, ob Projektile mit Gegnern kollidieren
+    for (let i = 0; i < bullets.length; i++) {
+        for (let j = 0; j < enemies.length; j++) {
+            if (bullets[i].x < enemies[j].x + enemies[j].width &&
+                bullets[i].x + 10 > enemies[j].x &&
+                bullets[i].y < enemies[j].y + enemies[j].height &&
+                bullets[i].y + 20 > enemies[j].y) {
+                // Kollision erkannt, Gegner und Bullet entfernen
+                enemies.splice(j, 1);
+                bullets.splice(i, 1);
+                score += 10;
+                break;
+            }
+        }
+    }
+
+    // Prüfen, ob der Spieler von einem Gegner getroffen wurde
+    for (let i = 0; i < enemies.length; i++) {
+        if (player.x < enemies[i].x + enemies[i].width &&
+            player.x + player.width > enemies[i].x &&
+            player.y < enemies[i].y + enemies[i].height &&
+            player.y + player.height > enemies[i].y) {
+            gameOver = true;
+        }
+    }
+}
+
+// Zeichne den Punktestand
+function drawScore() {
+    ctx.fillStyle = "#fff";
+    ctx.font = "20px Arial";
+    ctx.fillText("Punkte: " + score, 10, 30);
+}
+
+// Countdown anzeigen
+function updateCountdown() {
+    const countdownElement = document.getElementById("countdown");
+    countdownElement.textContent = `Neustart in: ${countdownTime} Sekunden`;
+
+    // Wenn der Countdown 0 erreicht, Neustart durchführen
+    if (countdownTime <= 0) {
+        clearInterval(countdownInterval);
+        resetGame();
+    } else {
+        countdownTime--;
+    }
+}
+
+// Spiel zurücksetzen
+function resetGame() {
+    player.x = canvas.width / 2;
+    player.y = canvas.height - 50;
+    bullets = [];
+    enemies = [];
+    score = 0;
+    gameOver = false;
+    countdownTime = 3; // Countdown zurücksetzen
+    startGame();  // Startet das Spiel erneut
+}
+
+// Hauptspiel-Loop
+function gameLoop() {
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fff";
+        ctx.font = "30px Arial";
+        ctx.fillText("Game Over!", canvas.width / 2 - 80, canvas.height / 2);
+        ctx.font = "20px Arial";
+        ctx.fillText("Spiel wird in 3 Sekunden neu gestartet...", canvas.width / 2 - 150, canvas.height / 2 + 30);
+
+        // Starten des Countdowns
+        countdownInterval = setInterval(updateCountdown, 1000);
+        return;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    movePlayer();
+    moveBullets();
+    moveEnemies();
+    checkCollisions();
+
+    drawPlayer();
+    drawBullets();
+    drawEnemies();
+    drawScore();
+
+    if (Math.random() < 0.02) {
+        createEnemy(); // Erstelle zufällig Gegner
+    }
+
+    requestAnimationFrame(gameLoop); // Nächsten Frame anfordern
+}
+
+// Steuerung des Spielers
+document.addEventListener("keydown", (e) => {
+    if (!gameOver) {
+        if (e.key === "ArrowLeft") player.dx = -player.speed;
+        if (e.key === "ArrowRight") player.dx = player.speed;
+        if (e.key === "ArrowUp") player.dy = -player.speed;
+        if (e.key === "ArrowDown") player.dy = player.speed;
+        if (e.key === " " && !gameOver) {
+            bullets.push({ x: player.x + player.width / 2 - 5, y: player.y });
+        }
+    }
+});
+
+// Stoppen der Bewegung, wenn die Taste losgelassen wird
+document.addEventListener("keyup", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") player.dx = 0;
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") player.dy = 0;
+});
+
+// Spiel starten
+function startGame() {
+    gameLoop();
+}
+
+// Spiel starten
+startGame();
+</script>
+
+</body>
+</html>
